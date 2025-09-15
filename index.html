@@ -1702,20 +1702,36 @@
             });
             
             // Calculate shares from gigs
-            gigs.forEach(gig => {
-                let gigAmount = gig.amount;
+            if (socialWelfare && gigs.length > 0) {
+                // In social welfare mode, calculate a universal share value
+                const totalIncome = gigs.reduce((sum, gig) => sum + gig.amount, 0);
+                const averageAmount = totalIncome / gigs.length;
+                let totalShares = 0;
                 
-                if (socialWelfare && gigs.length > 0) {
-                    const averageAmount = gigs.reduce((sum, g) => g.amount + sum, 0) / gigs.length;
-                    gigAmount = averageAmount;
-                }
-                
-                const participantShare = gigAmount / gig.participants.length;
-                gig.participants.forEach(participant => {
-                    memberBalances[participant] += participantShare;
-                    memberShares[participant] += participantShare;
+                // Count total shares
+                gigs.forEach(gig => {
+                    totalShares += gig.participants.length;
                 });
-            });
+                
+                const universalShareValue = totalIncome / totalShares;
+                
+                // Apply universal share value to each participant
+                gigs.forEach(gig => {
+                    gig.participants.forEach(participant => {
+                        memberBalances[participant] += universalShareValue;
+                        memberShares[participant] += universalShareValue;
+                    });
+                });
+            } else {
+                // Normal mode - each gig pays its actual amount
+                gigs.forEach(gig => {
+                    const participantShare = gig.amount / gig.participants.length;
+                    gig.participants.forEach(participant => {
+                        memberBalances[participant] += participantShare;
+                        memberShares[participant] += participantShare;
+                    });
+                });
+            }
             
             // Calculate expenses
             costs.forEach(cost => {
@@ -2060,18 +2076,33 @@
             });
             
             // Calculate shares from gigs
-            gigs.forEach(gig => {
-                let gigAmount = gig.amount;
-                if (socialWelfare && gigs.length > 0) {
-                    const averageAmount = gigs.reduce((sum, g) => g.amount + sum, 0) / gigs.length;
-                    gigAmount = averageAmount;
-                }
+            if (socialWelfare && gigs.length > 0) {
+                // In social welfare mode, calculate a universal share value
+                const totalIncomeForShares = gigs.reduce((sum, gig) => sum + gig.amount, 0);
+                let totalSharesForCalc = 0;
                 
-                const participantShare = gigAmount / gig.participants.length;
-                gig.participants.forEach(participant => {
-                    tempMemberShares[participant] += participantShare;
+                // Count total shares
+                gigs.forEach(gig => {
+                    totalSharesForCalc += gig.participants.length;
                 });
-            });
+                
+                const universalShareValue = totalIncomeForShares / totalSharesForCalc;
+                
+                // Apply universal share value to each participant
+                gigs.forEach(gig => {
+                    gig.participants.forEach(participant => {
+                        tempMemberShares[participant] += universalShareValue;
+                    });
+                });
+            } else {
+                // Normal mode - each gig pays its actual amount
+                gigs.forEach(gig => {
+                    const participantShare = gig.amount / gig.participants.length;
+                    gig.participants.forEach(participant => {
+                        tempMemberShares[participant] += participantShare;
+                    });
+                });
+            }
             
             // Calculate expenses
             costs.forEach(cost => {
@@ -2170,19 +2201,35 @@
             });
             
             // Calculate shares from gigs
-            gigs.forEach(gig => {
-                let gigAmount = gig.amount;
-                if (socialWelfare && gigs.length > 0) {
-                    const averageAmount = gigs.reduce((sum, g) => g.amount + sum, 0) / gigs.length;
-                    gigAmount = averageAmount;
-                }
+            if (socialWelfare && gigs.length > 0) {
+                // In social welfare mode, calculate a universal share value
+                const totalIncomeForShares = gigs.reduce((sum, gig) => sum + gig.amount, 0);
+                let totalSharesForCalc = 0;
                 
-                const participantShare = gigAmount / gig.participants.length;
-                gig.participants.forEach(participant => {
-                    pdfMemberBalances[participant] += participantShare;
-                    pdfMemberShares[participant] += participantShare;
+                // Count total shares
+                gigs.forEach(gig => {
+                    totalSharesForCalc += gig.participants.length;
                 });
-            });
+                
+                const universalShareValue = totalIncomeForShares / totalSharesForCalc;
+                
+                // Apply universal share value to each participant
+                gigs.forEach(gig => {
+                    gig.participants.forEach(participant => {
+                        pdfMemberBalances[participant] += universalShareValue;
+                        pdfMemberShares[participant] += universalShareValue;
+                    });
+                });
+            } else {
+                // Normal mode - each gig pays its actual amount
+                gigs.forEach(gig => {
+                    const participantShare = gig.amount / gig.participants.length;
+                    gig.participants.forEach(participant => {
+                        pdfMemberBalances[participant] += participantShare;
+                        pdfMemberShares[participant] += participantShare;
+                    });
+                });
+            }
             
             // Calculate expenses
             costs.forEach(cost => {
@@ -2269,16 +2316,30 @@
                 doc.setFont(undefined, 'normal');
                 
                 let memberGigCount = 0;
+                let universalShareValue = 0;
+                
+                if (socialWelfare && gigs.length > 0) {
+                    // Calculate universal share value for social welfare mode
+                    const totalIncomeForShares = gigs.reduce((sum, gig) => sum + gig.amount, 0);
+                    let totalSharesForCalc = 0;
+                    gigs.forEach(gig => {
+                        totalSharesForCalc += gig.participants.length;
+                    });
+                    universalShareValue = totalIncomeForShares / totalSharesForCalc;
+                }
+                
                 gigs.forEach(gig => {
                     if (gig.participants.includes(member)) {
                         memberGigCount++;
-                        let gigAmount = gig.amount;
+                        let shareValue;
+                        
                         if (socialWelfare && gigs.length > 0) {
-                            const averageAmount = gigs.reduce((sum, g) => g.amount + sum, 0) / gigs.length;
-                            gigAmount = averageAmount;
+                            shareValue = universalShareValue;
+                            doc.text(`  ${gig.name}: €${shareValue.toFixed(2)} (universal share)`, 30, y);
+                        } else {
+                            shareValue = gig.amount / gig.participants.length;
+                            doc.text(`  ${gig.name}: €${shareValue.toFixed(2)} (${gig.participants.length} participants)`, 30, y);
                         }
-                        const share = gigAmount / gig.participants.length;
-                        doc.text(`  ${gig.name}: €${share.toFixed(2)}`, 30, y);
                         y += 5;
                     }
                 });
@@ -2546,20 +2607,35 @@
             });
             
             // Calculate shares from gigs
-            gigs.forEach(gig => {
-                let gigAmount = gig.amount;
+            if (socialWelfare && gigs.length > 0) {
+                // In social welfare mode, calculate a universal share value
+                const totalIncomeForShares = gigs.reduce((sum, gig) => sum + gig.amount, 0);
+                let totalSharesForCalc = 0;
                 
-                if (socialWelfare && gigs.length > 0) {
-                    const averageAmount = gigs.reduce((sum, g) => g.amount + sum, 0) / gigs.length;
-                    gigAmount = averageAmount;
-                }
-                
-                const participantShare = gigAmount / gig.participants.length;
-                gig.participants.forEach(participant => {
-                    memberBalances[participant] += participantShare;
-                    memberShares[participant] += participantShare;
+                // Count total shares
+                gigs.forEach(gig => {
+                    totalSharesForCalc += gig.participants.length;
                 });
-            });
+                
+                const universalShareValue = totalIncomeForShares / totalSharesForCalc;
+                
+                // Apply universal share value to each participant
+                gigs.forEach(gig => {
+                    gig.participants.forEach(participant => {
+                        memberBalances[participant] += universalShareValue;
+                        memberShares[participant] += universalShareValue;
+                    });
+                });
+            } else {
+                // Normal mode - each gig pays its actual amount
+                gigs.forEach(gig => {
+                    const participantShare = gig.amount / gig.participants.length;
+                    gig.participants.forEach(participant => {
+                        memberBalances[participant] += participantShare;
+                        memberShares[participant] += participantShare;
+                    });
+                });
+            }
             
             // Calculate expenses (same logic as main calculation)
             costs.forEach(cost => {
