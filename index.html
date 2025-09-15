@@ -2279,6 +2279,98 @@
                 }
             });
             
+            // Check if we need a new page
+            if (y > 200) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            // Simple Table Overview
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Member Summary Table', 20, y);
+            y += 10;
+            
+            // Table headers
+            doc.setFillColor(78, 205, 196); // Turquoise header
+            doc.rect(20, y - 2, 170, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.text('Member', 25, y + 3);
+            doc.text('Shares', 70, y + 3);
+            doc.text('Income (€)', 95, y + 3);
+            doc.text('Expenses (€)', 125, y + 3);
+            doc.text('Net (€)', 155, y + 3);
+            doc.text('Net+BTW (€)', 175, y + 3);
+            y += 10;
+            
+            doc.setTextColor(0, 0, 0);
+            doc.setFont(undefined, 'normal');
+            
+            // Table rows
+            members.forEach((member, index) => {
+                const income = pdfMemberShares[member];
+                const expenses = pdfMemberExpenses[member];
+                const balance = pdfMemberBalances[member];
+                const balanceWithBTW = balance * 1.09;
+                
+                // Count shares for this member
+                let shareCount = 0;
+                gigs.forEach(gig => {
+                    if (gig.participants.includes(member)) {
+                        shareCount++;
+                    }
+                });
+                
+                // Alternating row colors
+                if (index % 2 === 0) {
+                    doc.setFillColor(248, 249, 250);
+                    doc.rect(20, y - 2, 170, 6, 'F');
+                }
+                
+                doc.setTextColor(0, 0, 0);
+                doc.text(member, 25, y + 2);
+                doc.text(shareCount.toString(), 70, y + 2);
+                doc.text(`€${income.toFixed(2)}`, 95, y + 2);
+                doc.text(`€${expenses.toFixed(2)}`, 125, y + 2);
+                
+                // Color code the net result
+                doc.setTextColor(balance >= 0 ? 27 : 231, balance >= 0 ? 174 : 76, balance >= 0 ? 97 : 76);
+                doc.text(`€${balance.toFixed(2)}`, 155, y + 2);
+                doc.text(`€${balanceWithBTW.toFixed(2)}`, 175, y + 2);
+                doc.setTextColor(0, 0, 0);
+                
+                y += 6;
+            });
+            
+            // Summary row
+            y += 5;
+            doc.setFillColor(52, 73, 94); // Dark header
+            doc.rect(20, y - 2, 170, 8, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFont(undefined, 'bold');
+            doc.text('TOTALS', 25, y + 3);
+            
+            const totalIncomeSum = members.reduce((sum, member) => sum + pdfMemberShares[member], 0);
+            const totalExpensesSum = members.reduce((sum, member) => sum + pdfMemberExpenses[member], 0);
+            const totalNetSum = members.reduce((sum, member) => sum + pdfMemberBalances[member], 0);
+            const totalNetBTWSum = totalNetSum * 1.09;
+            
+            doc.text(`€${totalIncomeSum.toFixed(2)}`, 95, y + 3);
+            doc.text(`€${totalExpensesSum.toFixed(2)}`, 125, y + 3);
+            doc.text(`€${totalNetSum.toFixed(2)}`, 155, y + 3);
+            doc.text(`€${totalNetBTWSum.toFixed(2)}`, 175, y + 3);
+            y += 15;
+            
+            doc.setTextColor(0, 0, 0);
+            
+            // Check if we need a new page for detailed breakdown
+            if (y > 200) {
+                doc.addPage();
+                y = 20;
+            }
+            
             // Complete Member Breakdown
             members.forEach(member => {
                 if (y > 220) {
