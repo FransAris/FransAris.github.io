@@ -1,0 +1,43 @@
+SPULL BAND FINANCIAL OVERVIEW
+Generated,9/15/2025 9:03:01 PM
+Social Welfare Mode,Yes
+Include Bandpot in Expenses,Yes
+Split Travel Costs Equally,Yes
+
+GIGS
+Gig Name,Amount (€),Participants,Participants Count
+"Camping",300.00,"Max, Naut, Filip, Dani, Pedro, Roman, Steve, Kimo, Bandpot",9
+"Delft",1000.00,"Max, Naut, Dani, Pedro, Frans, Steve, Kimo, Bandpot",8
+
+COSTS
+Type,Description,Amount (€),Associated Gigs,Paid By,Used/Consumed By,Split Method
+car-travel,"Car travel for Delft: 121km @ €0.20/km",24.20,"Delft","Steve","All members","Equal split (travel)"
+car-travel,"Car travel for Delft: 130km @ €0.20/km",26.00,"Delft","Kimo","All members","Equal split (travel)"
+car-travel,"Car travel for Delft: 140km @ €0.20/km",28.00,"Delft","Max","All members","Equal split (travel)"
+general-travel,"Travel for Delft: Train",31.40,"Delft","Pedro","All members","Equal split (travel)"
+car-travel,"Car travel for Camping: 230km @ €0.20/km",46.00,"Camping","Max","All members","Equal split (travel)"
+car-travel,"Car travel for Camping: 92km @ €0.20/km",18.40,"Camping","Steve","All members","Equal split (travel)"
+car-travel,"Car travel for Camping: 200km @ €0.20/km",40.00,"Camping","Kimo","All members","Equal split (travel)"
+general-travel,"Travel for Camping: Train",14.30,"Camping","Pedro","All members","Equal split (travel)"
+general-travel,"Travel for Camping: Train",9.62,"Camping","Roman","All members","Equal split (travel)"
+parking,"Parking for Camping: Parking camping",9.50,"Camping","Max","All members","Equal split (travel)"
+car-travel,"Car travel for Camping: Fixed amount",56.80,"Camping","Max","All members","Equal split (travel)"
+car-travel,"Car travel for Camping: Fixed amount",60.00,"Camping","Filip","All members","Equal split (travel)"
+food,"Food for Delft: McDonalds",13.00,"Delft","Individual","Max","Individual expense"
+food,"Food for Delft: McDonalds",13.00,"Delft","Individual","Naut","Individual expense"
+food,"Food for Delft: McDonalds",13.00,"Delft","Individual","Frans","Individual expense"
+food,"Food for Delft: McDonalds",13.00,"Delft","Individual","Dani","Individual expense"
+advertisement,"Advertisement for Delft, Camping: Ads",71.00,"Delft; Camping","Dani","Max, Naut, Filip, Dani, Pedro, Roman, Frans, Steve, Kimo","Group expense"
+
+MEMBER BREAKDOWN
+Member,Shares,Income (€),Paid Out (€),Expense Share (€),Net Balance (€),Net + BTW (€)
+Max,2,152.94,140.30,56.52,236.72,258.02
+Naut,2,152.94,0.00,56.52,96.42,105.10
+Filip,1,76.47,60.00,43.52,92.95,101.31
+Dani,2,152.94,71.00,56.52,167.42,182.49
+Pedro,2,152.94,45.70,43.52,155.12,169.08
+Roman,1,76.47,9.62,43.52,42.57,46.40
+Frans,1,76.47,0.00,56.52,19.95,21.74
+Steve,2,152.94,42.60,43.52,152.02,165.70
+Kimo,2,152.94,66.00,43.52,175.42,191.21
+Bandpot,2,152.94,0.00,43.52,109.42,119.27
