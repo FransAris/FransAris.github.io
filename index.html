@@ -2044,17 +2044,70 @@
             doc.text('Financial Summary', 20, y);
             y += 8;
             
+            // Calculate sum of personal expenses and income
+            let totalPersonalIncome = 0;
+            let totalPersonalExpenses = 0;
+            
+            // Calculate personal totals from member breakdown
+            const tempMemberBalances = {};
+            const tempMemberShares = {};
+            const tempMemberExpenses = {};
+            
+            members.forEach(member => {
+                tempMemberBalances[member] = 0;
+                tempMemberShares[member] = 0;
+                tempMemberExpenses[member] = 0;
+            });
+            
+            // Calculate shares from gigs
+            gigs.forEach(gig => {
+                let gigAmount = gig.amount;
+                if (socialWelfare && gigs.length > 0) {
+                    const averageAmount = gigs.reduce((sum, g) => g.amount + sum, 0) / gigs.length;
+                    gigAmount = averageAmount;
+                }
+                
+                const participantShare = gigAmount / gig.participants.length;
+                gig.participants.forEach(participant => {
+                    tempMemberShares[participant] += participantShare;
+                });
+            });
+            
+            // Calculate expenses
+            costs.forEach(cost => {
+                if (cost.type === 'food' && cost.individualCost && cost.consumer) {
+                    tempMemberExpenses[cost.consumer] += cost.amount;
+                } else if ((cost.type === 'car-travel' || cost.type === 'general-travel' || cost.type === 'parking') && cost.splitEqually) {
+                    const activeMemberCount = includeBandpotInExpenses ? members.length : members.filter(m => m !== 'Bandpot').length;
+                    const costPerMember = cost.amount / activeMemberCount;
+                    members.forEach(member => {
+                        if (includeBandpotInExpenses || member !== 'Bandpot') {
+                            tempMemberExpenses[member] += costPerMember;
+                        }
+                    });
+                }
+                // Add other expense calculations as needed
+            });
+            
+            // Sum up totals
+            members.forEach(member => {
+                totalPersonalIncome += tempMemberShares[member];
+                totalPersonalExpenses += tempMemberExpenses[member];
+            });
+            
             doc.setFontSize(10);
             doc.setFont(undefined, 'normal');
             doc.text(`Total Income: €${totalIncome.toFixed(2)}`, 25, y);
             y += 6;
             doc.text(`Total Expenses: €${totalExpenses.toFixed(2)}`, 25, y);
             y += 6;
+            doc.text(`Sum of Personal Income: €${totalPersonalIncome.toFixed(2)}`, 25, y);
+            y += 6;
+            doc.text(`Sum of Personal Expenses: €${totalPersonalExpenses.toFixed(2)}`, 25, y);
+            y += 6;
             doc.text(`Net Result: €${netResult.toFixed(2)}`, 25, y);
             y += 6;
             doc.text(`Total Gigs: ${gigs.length}`, 25, y);
-            y += 6;
-            doc.text(`Average Participants per Gig: ${avgParticipants}`, 25, y);
             y += 15;
             
             // Expense Breakdown by Category
@@ -2179,19 +2232,9 @@
                 }
             });
             
-            // Display member breakdown
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'bold');
-            doc.text('Member', 25, y);
-            doc.text('Income', 70, y);
-            doc.text('Expenses', 100, y);
-            doc.text('Net Balance', 130, y);
-            doc.text('Net + BTW', 165, y);
-            y += 8;
-            
-            doc.setFont(undefined, 'normal');
+            // Complete Member Breakdown
             members.forEach(member => {
-                if (y > 270) {
+                if (y > 220) {
                     doc.addPage();
                     y = 20;
                 }
@@ -2201,12 +2244,109 @@
                 const balance = pdfMemberBalances[member];
                 const balanceWithBTW = balance * 1.09;
                 
-                doc.text(member, 25, y);
-                doc.text(`€${income.toFixed(2)}`, 70, y);
-                doc.text(`€${expenses.toFixed(2)}`, 100, y);
-                doc.text(`€${balance.toFixed(2)}`, 130, y);
-                doc.text(`€${balanceWithBTW.toFixed(2)}`, 165, y);
+                // Member header
+                doc.setFillColor(78, 205, 196); // Turquoise
+                if (member === 'Bandpot') {
+                    doc.setFillColor(255, 217, 61); // Golden
+                }
+                doc.rect(20, y - 5, 170, 12, 'F');
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(member, 25, y + 3);
+                doc.text(`Final: €${balanceWithBTW.toFixed(2)}`, 180, y + 3, { align: 'right' });
+                y += 15;
+                
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                
+                // Income breakdown
+                doc.setFont(undefined, 'bold');
+                doc.text('INCOME BREAKDOWN:', 25, y);
                 y += 6;
+                doc.setFont(undefined, 'normal');
+                
+                let memberGigCount = 0;
+                gigs.forEach(gig => {
+                    if (gig.participants.includes(member)) {
+                        memberGigCount++;
+                        let gigAmount = gig.amount;
+                        if (socialWelfare && gigs.length > 0) {
+                            const averageAmount = gigs.reduce((sum, g) => g.amount + sum, 0) / gigs.length;
+                            gigAmount = averageAmount;
+                        }
+                        const share = gigAmount / gig.participants.length;
+                        doc.text(`  ${gig.name}: €${share.toFixed(2)}`, 30, y);
+                        y += 5;
+                    }
+                });
+                
+                if (memberGigCount === 0) {
+                    doc.text('  No gig participation', 30, y);
+                    y += 5;
+                }
+                
+                doc.setFont(undefined, 'bold');
+                doc.text(`Total Income: €${income.toFixed(2)}`, 30, y);
+                y += 10;
+                
+                // Expense breakdown
+                doc.setFont(undefined, 'bold');
+                doc.text('EXPENSE BREAKDOWN:', 25, y);
+                y += 6;
+                doc.setFont(undefined, 'normal');
+                
+                let hasExpenses = false;
+                costs.forEach(cost => {
+                    let memberCost = 0;
+                    let reason = '';
+                    
+                    if (cost.type === 'food' && cost.individualCost && cost.consumer === member) {
+                        memberCost = cost.amount;
+                        reason = 'Individual food expense';
+                    } else if ((cost.type === 'car-travel' || cost.type === 'general-travel' || cost.type === 'parking') && cost.splitEqually) {
+                        const activeMemberCount = includeBandpotInExpenses ? members.length : members.filter(m => m !== 'Bandpot').length;
+                        if (includeBandpotInExpenses || member !== 'Bandpot') {
+                            memberCost = cost.amount / activeMemberCount;
+                            reason = 'Equal split';
+                        }
+                    } else if (cost.users && cost.users.includes(member)) {
+                        memberCost = cost.amount / cost.users.length;
+                        reason = 'Group expense';
+                    } else if (cost.beneficiaries && cost.beneficiaries.includes(member)) {
+                        memberCost = cost.amount / cost.beneficiaries.length;
+                        reason = 'Group expense';
+                    } else if (cost.consumers && cost.consumers.includes(member)) {
+                        memberCost = cost.amount / cost.consumers.length;
+                        reason = 'Group expense';
+                    } else if (!cost.splitEqually && (cost.type === 'advertisement' || cost.type === 'other')) {
+                        const activeMemberCount = includeBandpotInExpenses ? members.length : members.filter(m => m !== 'Bandpot').length;
+                        if (includeBandpotInExpenses || member !== 'Bandpot') {
+                            memberCost = cost.amount / activeMemberCount;
+                            reason = 'Equal split';
+                        }
+                    }
+                    
+                    if (memberCost > 0) {
+                        hasExpenses = true;
+                        const gigInfo = cost.gigNames ? cost.gigNames.join(', ') : (cost.gigName || 'N/A');
+                        doc.text(`  ${cost.description}: €${memberCost.toFixed(2)} (${reason})`, 30, y);
+                        y += 5;
+                    }
+                });
+                
+                if (!hasExpenses) {
+                    doc.text('  No expenses', 30, y);
+                    y += 5;
+                }
+                
+                doc.setFont(undefined, 'bold');
+                doc.text(`Total Expenses: €${expenses.toFixed(2)}`, 30, y);
+                y += 6;
+                doc.text(`NET RESULT: €${balance.toFixed(2)} (€${balanceWithBTW.toFixed(2)} inc. BTW)`, 30, y);
+                y += 20;
             });
             
             // Add footer
@@ -2312,9 +2452,9 @@
             const overviewWs = XLSX.utils.aoa_to_sheet(overviewData);
             XLSX.utils.book_append_sheet(wb, overviewWs, "Overview");
             
-            // Create Gigs sheet
+            // Create Gigs sheet with expenses
             const gigsData = [
-                ['Gig Name', 'Amount (€)', 'Participants', 'Share Value (€)', 'Participants Count']
+                ['Gig Name', 'Amount (€)', 'Participants', 'Share Value (€)', 'Participants Count', 'Associated Expenses (€)', 'Net Per Share (€)']
             ];
             
             gigs.forEach(gig => {
@@ -2326,36 +2466,72 @@
                 
                 const participantShareValue = gigAmount / gig.participants.length;
                 
+                // Calculate expenses associated with this gig
+                let gigExpenses = 0;
+                costs.forEach(cost => {
+                    if (cost.gigIds && cost.gigIds.includes(gig.id)) {
+                        gigExpenses += cost.amount / cost.gigIds.length; // Split expense across associated gigs
+                    } else if (cost.gigId === gig.id) {
+                        gigExpenses += cost.amount;
+                    }
+                });
+                
+                const netPerShare = (gigAmount - gigExpenses) / gig.participants.length;
+                
                 gigsData.push([
                     gig.name,
                     gigAmount.toFixed(2),
                     gig.participants.join(', '),
                     participantShareValue.toFixed(2),
-                    gig.participants.length
+                    gig.participants.length,
+                    gigExpenses.toFixed(2),
+                    netPerShare.toFixed(2)
                 ]);
             });
             
             const gigsWs = XLSX.utils.aoa_to_sheet(gigsData);
-            XLSX.utils.book_append_sheet(wb, gigsWs, "Gigs");
+            XLSX.utils.book_append_sheet(wb, gigsWs, "Gigs with Expenses");
             
-            // Create Costs sheet
+            // Create Detailed Costs sheet
             const costsData = [
-                ['Type', 'Description', 'Amount (€)', 'Paid By', 'Used/Consumed By']
+                ['Type', 'Description', 'Amount (€)', 'Associated Gigs', 'Paid By', 'Used/Consumed By', 'Split Method']
             ];
             
             costs.forEach(cost => {
-                const usedBy = cost.users ? cost.users.join(', ') : (cost.consumers ? cost.consumers.join(', ') : 'All members');
+                let usedBy = 'All members';
+                let splitMethod = 'Equal split';
+                
+                if (cost.type === 'food' && cost.individualCost && cost.consumer) {
+                    usedBy = cost.consumer;
+                    splitMethod = 'Individual expense';
+                } else if (cost.users && cost.users.length > 0) {
+                    usedBy = cost.users.join(', ');
+                    splitMethod = 'Group expense';
+                } else if (cost.beneficiaries && cost.beneficiaries.length > 0) {
+                    usedBy = cost.beneficiaries.join(', ');
+                    splitMethod = 'Group expense';
+                } else if (cost.consumers) {
+                    usedBy = cost.consumers.join(', ');
+                    splitMethod = 'Group expense';
+                } else if (cost.splitEqually) {
+                    splitMethod = 'Equal split (travel)';
+                }
+                
+                const associatedGigs = cost.gigNames ? cost.gigNames.join(', ') : (cost.gigName || 'N/A');
+                
                 costsData.push([
                     cost.type,
                     cost.description,
                     cost.amount.toFixed(2),
-                    cost.payer,
-                    usedBy
+                    associatedGigs,
+                    cost.payer || 'Individual',
+                    usedBy,
+                    splitMethod
                 ]);
             });
             
             const costsWs = XLSX.utils.aoa_to_sheet(costsData);
-            XLSX.utils.book_append_sheet(wb, costsWs, "Costs");
+            XLSX.utils.book_append_sheet(wb, costsWs, "Detailed Costs");
             
             // Create Detailed Member Breakdown sheet
             const memberBalances = {};
@@ -2412,7 +2588,12 @@
                         memberExpenses[beneficiary] += costPerBeneficiary;
                     });
                     memberBalances[cost.payer] += cost.amount;
+                } else if (cost.type === 'food' && cost.individualCost && cost.consumer) {
+                    // Food is an individual cost - only the consumer pays
+                    memberBalances[cost.consumer] -= cost.amount;
+                    memberExpenses[cost.consumer] += cost.amount;
                 } else if (cost.type === 'food' && cost.consumers) {
+                    // Legacy food cost handling
                     const costPerConsumer = cost.amount / cost.consumers.length;
                     cost.consumers.forEach(consumer => {
                         memberBalances[consumer] -= costPerConsumer;
@@ -2495,8 +2676,68 @@
             const categoryWs = XLSX.utils.aoa_to_sheet(categoryData);
             XLSX.utils.book_append_sheet(wb, categoryWs, "Cost Categories");
             
+            // Create Individual Food Expenses sheet
+            const foodExpensesData = [
+                ['Member', 'Gig', 'Description', 'Amount (€)', 'Date Added']
+            ];
+            
+            costs.forEach(cost => {
+                if (cost.type === 'food' && cost.individualCost && cost.consumer) {
+                    const gigName = cost.gigName || 'Unknown Gig';
+                    foodExpensesData.push([
+                        cost.consumer,
+                        gigName,
+                        cost.description,
+                        cost.amount.toFixed(2),
+                        new Date(cost.id).toLocaleDateString()
+                    ]);
+                }
+            });
+            
+            if (foodExpensesData.length > 1) {
+                const foodWs = XLSX.utils.aoa_to_sheet(foodExpensesData);
+                XLSX.utils.book_append_sheet(wb, foodWs, "Individual Food Expenses");
+            }
+            
+            // Create Gig Profitability Analysis
+            const profitabilityData = [
+                ['Gig Name', 'Income (€)', 'Expenses (€)', 'Net Profit (€)', 'Profit per Participant (€)', 'Participants']
+            ];
+            
+            gigs.forEach(gig => {
+                let gigAmount = gig.amount;
+                if (socialWelfare && gigs.length > 0) {
+                    const averageAmount = gigs.reduce((sum, g) => g.amount + sum, 0) / gigs.length;
+                    gigAmount = averageAmount;
+                }
+                
+                let gigExpenses = 0;
+                costs.forEach(cost => {
+                    if (cost.gigIds && cost.gigIds.includes(gig.id)) {
+                        gigExpenses += cost.amount / cost.gigIds.length;
+                    } else if (cost.gigId === gig.id) {
+                        gigExpenses += cost.amount;
+                    }
+                });
+                
+                const netProfit = gigAmount - gigExpenses;
+                const profitPerParticipant = gig.participants.length > 0 ? netProfit / gig.participants.length : 0;
+                
+                profitabilityData.push([
+                    gig.name,
+                    gigAmount.toFixed(2),
+                    gigExpenses.toFixed(2),
+                    netProfit.toFixed(2),
+                    profitPerParticipant.toFixed(2),
+                    gig.participants.join(', ')
+                ]);
+            });
+            
+            const profitabilityWs = XLSX.utils.aoa_to_sheet(profitabilityData);
+            XLSX.utils.book_append_sheet(wb, profitabilityWs, "Gig Profitability");
+            
             // Save the file
-            XLSX.writeFile(wb, 'band-finances.xlsx');
+            XLSX.writeFile(wb, 'spull-band-finances.xlsx');
         }
 
         // Add event listeners for checkboxes
